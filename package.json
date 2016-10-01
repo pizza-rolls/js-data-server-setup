@@ -18,13 +18,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/crobinson42/js-data-server-setup.git"
+    "url": "https://github.com/pizza-rolls/js-data-server-setup.git"
   },
   "keywords": [],
   "author": "coryrobinson42@gmail.com",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/crobinson42/js-data-server-setup/issues"
+    "url": "https://github.com/pizza-rolls/js-data-server-setup/issues"
   },
   "devDependencies": {
     "babel-cli": "^6.14.0",
@@ -51,5 +51,5 @@
       "it"
     ]
   },
-  "homepage": "https://github.com/crobinson42/js-data-server-setup#readme"
+  "homepage": "https://github.com/pizza-rolls/js-data-server-setup#readme"
 }
