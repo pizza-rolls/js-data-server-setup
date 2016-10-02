@@ -6,7 +6,7 @@ import Module from '../dist/bundle.js'
 
 describe('Setup.test.js - Setup, Instantiation, & Invokation', function () {
   it('should be a class instantiation', function () {
-    assert.ok(new Module())
+    assert.strictEqual(typeof Module, 'function')
   })
 
   // it('should return an Error if invoked without wrong args', function () {
