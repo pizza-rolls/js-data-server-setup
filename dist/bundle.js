@@ -154,17 +154,27 @@ var JsDataServerSetup = function () {
     var config = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     classCallCheck(this, JsDataServerSetup);
 
+    // base route to mount js-data-express
     this.baseRoute = config.baseRoute || '/';
+    // express app instance to use
     this.app = config.app || express();
+    // js-data container to use
     this.container = config.container || new jsData.Container();
-    this.adapter = config.adapter;
+    this.adapter = config.adapter; // default adapter to use
     // a hashmap of resource mappers
     this.resources = {};
     // flag if router has been mounted to this.app
     this._isMounted = false;
-    if (!this.adapter) throw new Error('JsDataServerSetup requires an a Js-Data Adapter');
-    this.container.registerAdapter('defaultAdapter', this.adapter, { default: true });
 
+    // policies hashmap for use with references in setting up resources
+    this.policies = config.policies;
+    // adapters hashmap for use with references in setting up resources
+    this.adapters = config.adapters;
+
+    // register default adapter on container
+    this.registerAdapter(this.container, { adapter: this.adapter, name: 'containerDefaultAdapter' });
+
+    // instantiate a router to use (later added to this.app in this.mount())
     this.apiRoutes = express.Router();
     // use js-data-express's queryParser
     this.apiRoutes.use(jsDataExpress.queryParser);
@@ -173,14 +183,25 @@ var JsDataServerSetup = function () {
   }
 
   /**
-   * Mount the router to the app after all resources have been setup.
+   * Mount the router to the app via js-data-express after all resources have been setup.
    */
 
 
   createClass(JsDataServerSetup, [{
     key: 'mount',
     value: function mount() {
-      this.app.use(this.baseRoute || '/', this.apiRoutes);
+      if (this._isMounted) {
+        console.log('JsDataServerSetup.mount() is being called again. You can only\n      mount once. Please check your code and rearrange the order you setup your\n      resources.');
+        throw new Error();
+      }
+
+      try {
+        this.app.use(this.baseRoute, this.apiRoutes);
+        this._isMounted = true;
+      } catch (e) {
+        console.log('JsDataServerSetup.mount() error mounting to app. Check that the\n      config param \'app\' is an instance of Express.');
+        console.log(e);
+      }
     }
 
     /**
@@ -221,40 +242,146 @@ var JsDataServerSetup = function () {
      * @param {object} [options.endpointConfig] - Config obj: http://api.js-data.io/js-data-express/1.0.0-rc.1/global.html#Config
      * @param {object} [options.mapperConfig] - The config to be used on .defineMapper()
      * @param {object} [options.adapter] - An adapter to use on this resource
-     * @param {object} [options.adapter.name] - The name of the adapter
+     * @param {string} [options.adapter.name] - The name of the adapter key in this.adapters
+     * @param {string|array|function|object} [options.policies] - A policy list of policies or middleware function. Can be a name referencing this.policies or a middleware method ie: (req, res, next) => {}
+     *                                                          If it is an object, it must use this signature for action specific policies: { find, update, destroy, create }
      */
 
   }, {
     key: 'setupResource',
     value: function setupResource(_ref) {
+      var _this2 = this;
+
       var name = _ref.name;
       var endpointConfig = _ref.endpointConfig;
       var mapperConfig = _ref.mapperConfig;
       var adapter = _ref.adapter;
+      var policies = _ref.policies;
 
       if (!name && !mapperConfig && !mapperConfig.name) throw new Error('JsDataServerSetup.setupResource() requires a resource name');
-      mapperConfig || (mapperConfig = {});
+
       name || (name = mapperConfig.name);
+      endpointConfig || (endpointConfig = {});
+      mapperConfig || (mapperConfig = {});
+
+      // the route path to use on the express router
+      var routePath = '/' + name;
+
       this.resources[name] = this.container.defineMapper(Object.assign({ name: name }, mapperConfig));
 
-      if (adapter) this.resources[name].registerAdapter(this.resources[name], adapter);
+      if (adapter) {
+        if (typeof adapter !== 'string') {
+          console.log('JsDataServerSetup.setupResource() error using resource ' + name + ' adapter.\n        The adpater property must be a string that references the name/key of an adapter in\n        the adapters hashmap.');
+          throw new Error();
+        }
+        this.resources[name].registerAdapter(this.resources[name], adapter);
+      }
+
+      // middleware to mount on route ie: policies
+      var middleware = [];
+
+      if (policies) {
+        try {
+          if ((typeof policies === 'undefined' ? 'undefined' : _typeof(policies)) === 'object' && !Array.isArray(policies)) {
+            (function () {
+              // iterate each key/action as an array|string|method of policies and mount
+              // to route HTTP verb before moving on
+              var _allowedActionKeys = ['find', 'create', 'update', 'destroy'];
+              Object.keys(policies).forEach(function (action) {
+                action = action.toLowerCase();
+                if (!_allowedActionKeys.includes(action)) {
+                  console.log('JsDataServerSetup.setupResource() policies key/action ' + action + ' not recognized.\n              You can only use \'create\', \'find\', \'update\', & \'destroy keys for policies actions.\'');
+                  throw new Error();
+                }
+
+                var actionMiddleware = [];
+                addMiddleware(policies[action], actionMiddleware, _this2);
+
+                // the router method to be used for mounting this action
+                var method = void 0;
+
+                switch (action) {
+                  case 'create':
+                    method = 'post';
+                    break;
+                  case 'find':
+                    method = 'get';
+                    break;
+                  case 'update':
+                    method = 'put';
+                    break;
+                  case 'destroy':
+                    method = 'delete';
+                    break;
+                }
+
+                // only mount if actionMiddleware is not an empty array
+                if (actionMiddleware.length > 0) {
+                  _this2.apiRoutes[method](routePath, actionMiddleware);
+                }
+              }, _this2); // end > Object.keys().forEach()
+            })();
+          } else {
+            addMiddleware(policies, middleware, this);
+          }
+        } catch (e) {
+          console.log('JsDataServerSetup.setupResource() policies for resource ' + name + '\n        must be a string, middleware function, or array of either of those -or-\n        an object matching the create/find/update/destroy signature allowed.');
+          throw new Error(e);
+        }
+      }
+      // mount any middleware
+      // only mount if middleware is not an empty array
+      if (middleware.length > 0) {
+        this.apiRoutes.use(routePath, middleware);
+      }
 
       // mount this resource
-      this.apiRoutes.use('/' + name, new jsDataExpress.Router(this.resources[name], endpointConfig).router);
+      this.apiRoutes.use(routePath, new jsDataExpress.Router(this.resources[name], endpointConfig).router);
+    }
+
+    // returns the policy method from this.policies - throws if none exists
+
+  }, {
+    key: 'getPolicy',
+    value: function getPolicy(name) {
+      if (!this.policies || !this.policies[name]) {
+        console.log('JsDataServerSetup.getPolicy() policies do not exist or cannot find policy ' + name);
+        throw new Error();
+      } else if (typeof this.policies[name] !== 'function') {
+        console.log('JsDataServerSetup.getPolicy() policy ' + name + ' is not a middleware method ie: (req, res, next) => { ... }');
+        throw new Error();
+      }
+      return this.policies[name];
     }
   }, {
     key: 'registerAdapter',
     value: function registerAdapter(component, adapter) {
       var adapterName = adapter.name || 'noNameAdapter';
+      adapter = adapter.adapter || adapter;
+
       try {
         component.registerAdapter(adapterName, adapter, { default: true });
       } catch (e) {
-        console.log('JsDataServerSetup.setupResource() unable to registerAdapter ' + adapterName + ' on resource');
+        console.log('JsDataServerSetup.registerAdapter() unable to registerAdapter ' + adapterName);
         throw new Error(e);
       }
     }
   }]);
   return JsDataServerSetup;
 }();
+
+function addMiddleware(policies, middlewareList, context) {
+  if (Array.isArray(policies)) {
+    policies.forEach(function (p) {
+      addMiddleware(p, middlewareList, context);
+    }, context);
+  } else if (typeof policies === 'string') {
+    middlewareList.push(context.getPolicy(policies));
+  } else if (typeof policies === 'function') {
+    middlewareList.push(policies);
+  } else {
+    throw new Error();
+  }
+}
 
 module.exports = JsDataServerSetup;
