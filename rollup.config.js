@@ -11,18 +11,18 @@ export default {
   format: 'cjs', // iife, cjs, umd
   plugins: [
     // get node_module packages for the bundle
-    resolve({
-      jsnext: true,
-      main: true
-      // browser: true
+    // resolve({
+    //   jsnext: true,
+    //   main: true
+    //   // browser: true
+    // }),
+    babel({
+      babelrc: false,
+      'presets': [es2015Rollup]
     }),
     json(),
     // // convert commonjs modules to es2015 module imports
     commonjs(),
     // transform code with babel
-    babel({
-      babelrc: false,
-      'presets': [es2015Rollup]
-    })
   ]
 }
