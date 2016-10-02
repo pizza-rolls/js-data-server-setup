@@ -3,6 +3,7 @@ import resolve from 'rollup-plugin-node-resolve'
 import commonjs from 'rollup-plugin-commonjs'
 import babel from 'rollup-plugin-babel'
 import es2015Rollup from 'babel-preset-es2015-rollup'
+import json from 'rollup-plugin-json'
 
 export default {
   entry: 'src/index.js',
@@ -15,14 +16,12 @@ export default {
       main: true
       // browser: true
     }),
-    // convert commonjs modules to es2015 module imports
+    json(),
+    // // convert commonjs modules to es2015 module imports
     commonjs(),
     // transform code with babel
     babel({
       babelrc: false,
-      'plugins': [
-        ['transform-react-jsx']
-      ],
       'presets': [es2015Rollup]
     })
   ]

@@ -1,8 +1,8 @@
-import express from 'express'
 import { Router, queryParser } from 'js-data-express'
 import { Container } from 'js-data'
+import express from 'express'
 
-class JsDataServerSetup {
+export default class JsDataServerSetup {
   constructor (config = {}) {
     this.baseRoute = config.baseRoute || '/'
     this.app = config.app || express()
@@ -89,5 +89,3 @@ class JsDataServerSetup {
     }
   }
 }
-
-export default JsDataServerSetup
