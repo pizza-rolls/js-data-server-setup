@@ -5,6 +5,8 @@ cache:
     - node_modules
 notifications:
   email: false
+services:
+  - mongodb
 node_js:
   - '6'
 install:
