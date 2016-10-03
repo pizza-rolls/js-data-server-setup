@@ -172,6 +172,9 @@ var JsDataServerSetup = function () {
     this.adapters = config.adapters;
 
     // register default adapter on container
+    if (!this.adapter) {
+      throw new Error('JsDataServerSetup adapter is required');
+    }
     this.registerAdapter(this.container, { adapter: this.adapter, name: 'containerDefaultAdapter' });
 
     // instantiate a router to use (later added to this.app in this.mount())

@@ -22,6 +22,7 @@ export default class JsDataServerSetup {
     this.adapters = config.adapters
 
     // register default adapter on container
+    if (!this.adapter) { throw new Error(`JsDataServerSetup adapter is required`) }
     this.registerAdapter(this.container, {adapter: this.adapter, name: 'containerDefaultAdapter'})
 
     // instantiate a router to use (later added to this.app in this.mount())
@@ -150,7 +151,7 @@ export default class JsDataServerSetup {
 
             // only mount if actionMiddleware is not an empty array
             if (actionMiddleware.length > 0) {
-              this.apiRoutes[method](routePath, actionMiddleware)
+              this.apiRoutes[method](routePath + '/?*', actionMiddleware)
             }
           }, this) // end > Object.keys().forEach()
         } else {
@@ -170,6 +171,7 @@ export default class JsDataServerSetup {
     }
 
     // mount this resource
+    // @NOTE/@TODO currently Router does not accept the 2nd argument
     this.apiRoutes.use(
       routePath,
       new Router(this.resources[name], endpointConfig).router
