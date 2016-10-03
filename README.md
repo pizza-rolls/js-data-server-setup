@@ -3,7 +3,6 @@
 
 [![Build Status](https://travis-ci.org/pizza-rolls/js-data-server-setup.svg?branch=master)](https://travis-ci.org/pizza-rolls/js-data-server-setup)
 [![JavaScript Style Guide](https://img.shields.io/badge/code%20style-standard-brightgreen.svg)](http://standardjs.com/)
-[![Code Climate](https://codeclimate.com/github/pizza-rolls/js-data-server-setup/badges/gpa.svg)](https://codeclimate.com/github/pizza-rolls/js-data-server-setup)
 
 [![forthebadge](https://img.shields.io/badge/Node.js-v4-yellow.svg)](http://nodejs.org)
 [![forthebadge](https://img.shields.io/badge/Node.js-v6-orange.svg)](http://nodejs.org)
@@ -42,3 +41,8 @@ jsDataServer.mount()
 // setup all resources (mount() is invoked automatically, see api docs for details)
 jsDataServer.setup(resources)
 ```
+
+
+### Examples
+
+See `/example` dir in this repo for setup options.
