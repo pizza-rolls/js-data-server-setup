@@ -3,7 +3,7 @@ import { Container } from 'js-data'
 import JsDataServerSetup from '../src/index.js'
 import assert from 'assert'
 // import request from 'supertest'
-// import sinon from 'sinon'
+import sinon from 'sinon'
 
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 const container = new Container({
