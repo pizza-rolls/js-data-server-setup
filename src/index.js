@@ -88,8 +88,9 @@ export default class JsDataServerSetup {
    * @param {string} [options.adapter.name] - The name of the adapter key in this.adapters
    * @param {string|array|function|object} [options.policies] - A policy list of policies or middleware function. Can be a name referencing this.policies or a middleware method ie: (req, res, next) => {}
    *                                                          If it is an object, it must use this signature for action specific policies: { find, update, destroy, create }
+   * @param {object} [options.events] - A hashmap of event names and callbacks that will be attached to this resource ie: [resource].on(key/event-name, value/cb)
    */
-  setupResource ({ name, endpointConfig, mapperConfig, adapter, policies }) {
+  setupResource ({ name, endpointConfig, mapperConfig, adapter, policies, events }) {
     if (!name && !mapperConfig && !mapperConfig.name) throw new Error('JsDataServerSetup.setupResource() requires a resource name')
 
     name || (name = mapperConfig.name)
@@ -101,9 +102,30 @@ export default class JsDataServerSetup {
 
     this.resources[name] = this.container.defineMapper(Object.assign({name: name}, mapperConfig))
 
+    // register any defined events on the mapper/resource
+    if (events) {
+      if (typeof events !== 'object') {
+        console.log(`JsDataServerSetup.setupResource() resource "${name}" events must be an object of event name keys => callbacks`)
+        console.log(`instead, a ${typeof events} was detected:`, events)
+        throw new Error()
+      }
+
+      let mapper
+
+      try {
+        mapper = this.container.getMapper(name)
+      } catch (e) {
+        console.log(`JsDataServerSetup.setupResource() resource "${name}" doesn't exist on the container?`)
+        console.log('Registered Container Mappers:', Object.keys(this.container._mappers).map(m => this.container._mappers[m].name))
+        throw new Error()
+      }
+
+      Object.keys(events).forEach(event => { mapper.on(event, events[event]) })
+    }
+
     if (adapter) {
       if (typeof adapter !== 'string') {
-        console.log(`JsDataServerSetup.setupResource() error using resource ${name} adapter.
+        console.log(`JsDataServerSetup.setupResource() error using resource "${name}" adapter.
         The adpater property must be a string that references the name/key of an adapter in
         the adapters hashmap.`)
         throw new Error()

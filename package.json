@@ -49,6 +49,7 @@
     "rollup-plugin-json": "^2.0.2",
     "rollup-plugin-node-resolve": "^2.0.0",
     "semantic-release": "^4.3.5",
+    "sinon": "^1.17.6",
     "standard": "^8.0.0",
     "supertest": "^2.0.0",
     "webpack": "^1.13.2",
